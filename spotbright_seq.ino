@@ -16,46 +16,77 @@
   modified 2 Sep 2016
   by Arturo Guadalupi
 */
-#define BLUE 2
-#define RED 4
-#define YELLOW 6
-#define GREEN 8 
-#define PURPLE 10
-//#define DELAY 100
 
-int DELAY=0;
+#define GREEN 10 //correct
+#define WHITE 11 //correct
+#define RED 5 //correct
+#define BLUE 6 //correct
+#define YELLOW 9 //correct
+
+#define DST_SNSR A0
+#define DST_SNSR_MAX 500 // sensor returns "far to near" returns "500 to 0"
+#define MAX_DETECT 200 // The sensor return value at which we detect a car is entering the garage
+#define KNOB A3 // Knob range is 0-1023
+
+
+int dist_set=57;
+int dist_raw=500;
+bool warn_lt = 0;
+int raw_pot = 0;
 // the setup function runs once when you press reset or power the board
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
+  Serial.begin(9600);
   pinMode(BLUE, OUTPUT);
   pinMode(RED, OUTPUT);
   pinMode(YELLOW, OUTPUT);
+  pinMode(WHITE, OUTPUT);
   pinMode(GREEN, OUTPUT);
-  pinMode(PURPLE, OUTPUT);
+
+  // White light - we're on
+  digitalWrite(WHITE, HIGH);
+  
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  DELAY = analogRead(A0);
-  digitalWrite(BLUE, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(DELAY);                       // wait for a second
-  digitalWrite(BLUE, LOW);    // turn the LED off by making the voltage LOW
-  delay(DELAY);                       // wait for a second
-  digitalWrite(RED, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(DELAY);                       // wait for a second
-  digitalWrite(RED, LOW);    // turn the LED off by making the voltage LOW
-  delay(DELAY);                       // wait for a second
-  digitalWrite(YELLOW, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(DELAY);                       // wait for a second
-  digitalWrite(YELLOW, LOW);    // turn the LED off by making the voltage LOW
-  delay(DELAY);                       // wait for a second
-  digitalWrite(GREEN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(DELAY);                       // wait for a second
-  digitalWrite(GREEN, LOW);    // turn the LED off by making the voltage LOW
-  delay(DELAY);                       // wait for a second
-  digitalWrite(PURPLE, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(DELAY);                       // wait for a second
-  digitalWrite(PURPLE, LOW);    // turn the LED off by making the voltage LOW
-  delay(DELAY);                       // wait for a second
+  
+  raw_pot = analogRead( KNOB );
+  if (raw_pot < 50) raw_pot = 50;
+  dist_set = map( raw_pot, 50, 1023, 0, MAX_DETECT );
+  dist_raw = analogRead( DST_SNSR );
+  
+  //Serial.print("Raw: ");
+  //Serial.println( dist_set );
+ 
+  Serial.print( "Set: " );
+  Serial.println( dist_set );
+
+  // Not close enough
+  if( dist_raw > MAX_DETECT ){
+    digitalWrite(GREEN, LOW);
+    digitalWrite(YELLOW, LOW);
+  }
+
+  // Close but not close enough
+  if ( dist_raw < MAX_DETECT && dist_raw > dist_set ) {
+    digitalWrite(GREEN, HIGH);
+    warn_lt = !warn_lt;
+    if(warn_lt)
+        digitalWrite(YELLOW, HIGH);
+    else
+        digitalWrite(YELLOW, LOW);
+  }
+  
+  // Close enough, STOP!
+  if ( dist_raw <= dist_set ) {
+    digitalWrite(GREEN, LOW);
+    digitalWrite(YELLOW, LOW);
+    digitalWrite(RED, HIGH);
+  }  else {
+    digitalWrite(RED, LOW);
+  }
+  
+  delay(500);
   
 }
